@@ -155,7 +155,7 @@ def convert_reshape(node, params, layers, lambda_func, node_name, keras_name):
                 input_0 = ensure_tf_type(layers[node.input[0]], layers[list(layers)[0]], name="%s_const" % keras_name)
 
                 # Fix critical issue with NHWC
-                if input_1[0] is None and input_1[1] == -1:
+                if input_1[0] is None and input_1[1] == -1 or len(input_0.shape) == 4:
                     logger.warning('!!! IMPORTANT INFORMATION !!!')
                     logger.warning('The target shape if [None, -1] that means flatten.')
                     logger.warning('But the target ordering is NHWC, so we cant simply perform flatten')
