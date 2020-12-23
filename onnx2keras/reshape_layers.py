@@ -159,17 +159,11 @@ def convert_reshape(node, params, layers, lambda_func, node_name, keras_name):
                     logger.warning('!!! IMPORTANT INFORMATION !!!')
                     logger.warning('The target shape if [None, -1] that means flatten.')
                     logger.warning('But the target ordering is NHWC, so we cant simply perform flatten')
-                    logger.warning('The layer will be converted as lambda with tf.transpose')
+                    logger.warning('The layer will be converted with keras.layers.Permute')
                     logger.warning('---')
 
-                    def target_layer(x):
-                        import tensorflow as tf
-                        x = tf.transpose(x, [0, 3, 1, 2])
-                        return x
-
-                    lambda_layer = keras.layers.Lambda(target_layer, name="%s_CHW" % keras_name)
-                    layers[node_name] = lambda_layer(input_0)
-                    lambda_func[keras_name] = target_layer
+                    permute = keras.layers.Permute((3, 1, 2), name="%s_CHW" % keras_name)
+                    layers[node_name] = permute(input_0)
                 else:
                     layers[node_name] = input_0
 
@@ -252,16 +246,11 @@ def convert_flatten(node, params, layers, lambda_func, node_name, keras_name):
 
     if params['change_ordering']:
         # Fix critical issue with flatten
-        def target_layer(x):
-            import tensorflow as tf
-            x = tf.transpose(x, [0, 3, 1, 2])
-            return x
+        permute = keras.layers.Permute((3, 1, 2), name="%s_CHW" % keras_name)
 
-        lambda_layer = keras.layers.Lambda(target_layer, name="%s_CHW" % keras_name)
-        tensor_chw = lambda_layer(input_0)
+        tensor_chw = permute(input_0)
         flatten = keras.layers.Flatten(name=keras_name)
         layers[node_name] = flatten(tensor_chw)
-        lambda_func["%s_CHW" % keras_name] = target_layer
     else:
         reshape = keras.layers.Reshape([-1], name=keras_name)
         layers[node_name] = reshape(input_0)
