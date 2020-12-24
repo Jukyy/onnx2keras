@@ -151,6 +151,11 @@ def convert_reshape(node, params, layers, lambda_func, node_name, keras_name):
             logger.debug('The first argument is numpy array. Apply np.reshape.')
             layers[node_name] = np.reshape(input_0, np.int32(input_1))
         else:
+            # Check for case when target_shape is only one integer (without batch size)
+            if input_1.size > 1:
+                target_shape = np.int32(input_1[1:])
+            else:
+                target_shape = np.int32(input_1)
             if params['change_ordering']:
                 input_0 = ensure_tf_type(layers[node.input[0]], layers[list(layers)[0]], name="%s_const" % keras_name)
 
@@ -167,7 +172,7 @@ def convert_reshape(node, params, layers, lambda_func, node_name, keras_name):
                 else:
                     layers[node_name] = input_0
 
-                reshape = keras.layers.Reshape(np.int32(input_1[1:]), name=keras_name)
+                reshape = keras.layers.Reshape(target_shape, name=keras_name)
                 layers[node_name] = reshape(layers[node_name])
 
             else:
@@ -181,7 +186,7 @@ def convert_reshape(node, params, layers, lambda_func, node_name, keras_name):
                     flatten = keras.layers.Flatten(name=keras_name)
                     layers[node_name] = flatten(input_0)
                 else:
-                    reshape = keras.layers.Reshape(np.int32(input_1[1:]), name=keras_name)
+                    reshape = keras.layers.Reshape(target_shape, name=keras_name)
                     layers[node_name] = reshape(input_0)
     else:
         raise AttributeError('Can\'t reshape dynamic size.')
